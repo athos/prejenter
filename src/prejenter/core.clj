@@ -1,5 +1,5 @@
 (ns prejenter.core
-  (:import [java.awt Color]
+  (:import [java.awt Color Font]
            [java.awt.image BufferedImage]
            [java.io File]
            [javax.imageio ImageIO]))
@@ -36,13 +36,17 @@
   (render-coll ctx body))
 
 (defmethod render* :title [{:keys [g] :as ctx} [_ _ title]]
-  (.setColor g (:color ctx))
-  (.drawString g title 10 10))
+  (let [font (Font. (:font-family ctx) 0 (:font-size ctx))]
+    (.setFont g font)
+    (.setColor g (:color ctx))
+    (.drawString g title 10 50)))
 
 (defmethod render* :items [{:keys [g] :as ctx} [_ _ & items]]
-  (.setColor g (:color ctx))
-  (doseq [[i item] (map-indexed vector items)]
-    (.drawString g (str "- " item) 10 (+ 50 (* i 10)))))
+  (let [font (Font. (:font-family ctx) 0 (:font-size ctx))]
+    (.setFont g font)
+    (.setColor g (:color ctx))
+    (doseq [[i item] (map-indexed vector items)]
+      (.drawString g (str "- " item) 10 (+ 100 (* i 30))))))
 
 (defn gen-image [{:keys [width height] :as ctx} x]
   (let [img (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
@@ -56,6 +60,8 @@
 
   (def context
     {:width 640 :height 480
+     :font-family "Gill Sans"
+     :font-size 30
      :color Color/BLACK
      :background-color Color/WHITE})
 
