@@ -30,17 +30,17 @@
 (defn render-coll [ctx tree]
   (reduce render ctx tree))
 
-(defmethod render* :slide [{:keys [g width height] :as ctx} [_ _ & body]]
-  (.setColor g Color/WHITE)
-  (.fillRect g 0 0 width height)
+(defmethod render* :slide [{:keys [g] :as ctx} [_ _ & body]]
+  (.setColor g (:background-color ctx))
+  (.fillRect g 0 0 (:width ctx) (:height ctx))
   (render-coll ctx body))
 
 (defmethod render* :title [{:keys [g] :as ctx} [_ _ title]]
-  (.setColor g Color/BLACK)
+  (.setColor g (:color ctx))
   (.drawString g title 10 10))
 
 (defmethod render* :items [{:keys [g] :as ctx} [_ _ & items]]
-  (.setColor g Color/BLACK)
+  (.setColor g (:color ctx))
   (doseq [[i item] (map-indexed vector items)]
     (.drawString g (str "- " item) 10 (+ 50 (* i 10)))))
 
@@ -55,7 +55,9 @@
 (comment
 
   (def context
-    {:width 640 :height 480})
+    {:width 640 :height 480
+     :color Color/BLACK
+     :background-color Color/WHITE})
 
   (def slide
     [:slide
