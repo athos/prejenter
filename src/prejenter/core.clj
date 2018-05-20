@@ -30,23 +30,34 @@
 (defn render-coll [ctx tree]
   (reduce render ctx tree))
 
+(defn attr-value
+  ([ctx attrs attr-name]
+   (attr-value ctx attrs attr-name nil))
+  ([ctx attrs attr-name default-value]
+   (or (get attrs attr-name)
+       (get ctx attr-name)
+       default-value)))
+
+(defn render-text [{:keys [g] :as ctx} attrs x y text]
+  (let [font-size (attr-value ctx attrs :font-size)
+        font-family (attr-value ctx attrs :font-family)
+        font (Font. font-family 0 font-size)
+        color (attr-value ctx attrs :color Color/BLACK)]
+    (.setFont g font)
+    (.setColor g color)
+    (.drawString g text x y)))
+
 (defmethod render* :slide [{:keys [g] :as ctx} [_ _ & body]]
   (.setColor g (:background-color ctx))
   (.fillRect g 0 0 (:width ctx) (:height ctx))
   (render-coll ctx body))
 
-(defmethod render* :title [{:keys [g] :as ctx} [_ _ title]]
-  (let [font (Font. (:font-family ctx) 0 (:font-size ctx))]
-    (.setFont g font)
-    (.setColor g (:color ctx))
-    (.drawString g title 10 50)))
+(defmethod render* :title [{:keys [g] :as ctx} [_ attrs title]]
+  (render-text ctx attrs 10 50 title))
 
-(defmethod render* :items [{:keys [g] :as ctx} [_ _ & items]]
-  (let [font (Font. (:font-family ctx) 0 (:font-size ctx))]
-    (.setFont g font)
-    (.setColor g (:color ctx))
-    (doseq [[i item] (map-indexed vector items)]
-      (.drawString g (str "- " item) 10 (+ 100 (* i 30))))))
+(defmethod render* :items [{:keys [g] :as ctx} [_ attrs & items]]
+  (doseq [[i item] (map-indexed vector items)]
+    (render-text ctx attrs 10 (+ 100 (* i 30)) (str "- " item))))
 
 (defn gen-image [{:keys [width height] :as ctx} x]
   (let [img (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
@@ -68,7 +79,7 @@
   (def slide
     [:slide
      [:title "Hello, World!"]
-     [:items
+     [:items {:color Color/BLUE}
       "foo"
       "bar"
       "baz"]])
