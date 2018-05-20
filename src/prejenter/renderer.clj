@@ -67,17 +67,22 @@
         (update ::current-x + width)
         (update ::current-y + height))))
 
-(defmethod render* :slide [{:keys [g] :as ctx} [_ _ & body]]
-  (let [ctx (assoc ctx ::current-x 0 ::current-y 0)]
+(defmethod render* :slide [{:keys [g width height] :as ctx} [_ _ & body]]
+  (let [ctx (assoc ctx
+                   ::current-x 0, ::current-y 0
+                   ::min-x 0, ::max-x width
+                   ::min-y 0, ::max-y height)]
     (.setColor g (:background-color ctx))
-    (.fillRect g 0 0 (:width ctx) (:height ctx))
+    (.fillRect g 0 0 width height)
     (render-coll ctx body)))
 
-(defmethod render* :title [{:keys [g] :as ctx} [_ attrs title]]
-  (render-text ctx attrs title))
+(defmethod render* :title [{:keys [g ::min-x] :as ctx} [_ attrs title]]
+  (-> (render-text ctx attrs title)
+      (assoc ::current-x min-x)))
 
-(defmethod render* :items [{:keys [g] :as ctx} [_ attrs & items]]
+(defmethod render* :items [{:keys [g ::min-x] :as ctx} [_ attrs & items]]
   (reduce (fn [ctx [i item]]
-            (render-text ctx attrs (str "- " item)))
+            (-> (render-text ctx attrs (str "- " item))
+                (assoc ::current-x min-x)))
           ctx
           (map-indexed vector items)))
