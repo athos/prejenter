@@ -16,8 +16,11 @@
 (defn render [ctx tree]
   (if (vector? tree)
     (cond (keyword? (first tree))
-          (or (render* ctx (normalize-elem tree))
-              ctx)
+          (let [ctx' (render* ctx (normalize-elem tree))]
+            (assert (map? ctx')
+                    (str `render* " must return a context map, but returned "
+                         (pr-str ctx') " for " (first tree)))
+            ctx')
 
           (fn? (first tree))
           (let [[f & args] tree
@@ -45,7 +48,8 @@
         color (attr-value ctx attrs :color Color/BLACK)]
     (.setFont g font)
     (.setColor g color)
-    (.drawString g text x y)))
+    (.drawString g text x y)
+    ctx))
 
 (defmethod render* :slide [{:keys [g] :as ctx} [_ _ & body]]
   (.setColor g (:background-color ctx))
@@ -56,8 +60,10 @@
   (render-text ctx attrs 10 50 title))
 
 (defmethod render* :items [{:keys [g] :as ctx} [_ attrs & items]]
-  (doseq [[i item] (map-indexed vector items)]
-    (render-text ctx attrs 10 (+ 100 (* i 30)) (str "- " item))))
+  (reduce (fn [ctx [i item]]
+            (render-text ctx attrs 10 (+ 100 (* i 30)) (str "- " item)))
+          ctx
+          (map-indexed vector items)))
 
 (defn gen-image [{:keys [width height] :as ctx} x]
   (let [img (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
