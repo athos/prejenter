@@ -38,7 +38,7 @@
      [:title
       {:font-style :italic :font-weight :bold
        :padding-left 10 :padding-bottom 10}
-      "Hello, World!"]
+      [:inline "Hello, " [:text {:color Color/RED} "World!"]]]
      [:items {:color Color/BLUE}
       [:text {:color Color/RED} "foo"]
       "bar"

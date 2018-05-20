@@ -119,13 +119,21 @@
     (fn [ctx]
       (render ctx title))))
 
+(defmethod render* :inline [ctx [_ attrs & elems]]
+  (let [init-y (::current-y ctx)]
+    (loop [elems elems, ctx ctx, y init-y]
+      (if (empty? elems)
+        (assoc ctx ::current-y y)
+        (let [ctx (render ctx (first elems))]
+          (recur (rest elems)
+                 (assoc ctx ::current-y init-y)
+                 (max y (::current-y ctx))))))))
+
 (defmethod render* :items [ctx [_ attrs & items]]
   (with-paddings ctx attrs
     (fn [ctx]
       (reduce (fn [ctx item]
-                (-> (render-text ctx attrs "・")
-                    (assoc ::current-y (::current-y ctx))
-                    (render item)
+                (-> (render ctx [:inline "・" item])
                     (assoc ::current-x (::min-x ctx))))
               ctx
               items))))
