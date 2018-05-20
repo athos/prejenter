@@ -40,7 +40,7 @@
        :padding-left 10 :padding-bottom 10}
       "Hello, World!"]
      [:items {:color Color/BLUE}
-      "foo"
+      [:text {:color Color/RED} "foo"]
       "bar"
       "baz"]])
 

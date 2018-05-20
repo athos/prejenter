@@ -11,21 +11,25 @@
 (declare render-coll)
 
 (defn render [ctx tree]
-  (if (vector? tree)
-    (cond (keyword? (first tree))
-          (let [ctx' (render* ctx (normalize-elem tree))]
-            (assert (map? ctx')
-                    (str `render* " must return a context map, but returned "
-                         (pr-str ctx') " for " (first tree)))
-            ctx')
+  (cond (string? tree)
+        (recur ctx [:text {} tree])
 
-          (fn? (first tree))
-          (let [[f & args] tree
-                tree' (apply f args)]
-            (render ctx tree'))
+        (vector? tree)
+        (cond (keyword? (first tree))
+              (let [ctx' (render* ctx (normalize-elem tree))]
+                (assert (map? ctx')
+                        (str `render* " must return a context map, but returned "
+                             (pr-str ctx') " for " (first tree)))
+                ctx')
 
-          :else (render-coll ctx tree))
-    (render-coll ctx tree)))
+              (fn? (first tree))
+              (let [[f & args] tree
+                    tree' (apply f args)]
+                (render ctx tree'))
+
+              :else (render-coll ctx tree))
+
+        :else (render-coll ctx tree)))
 
 (defn render-coll [ctx tree]
   (reduce render ctx tree))
@@ -107,16 +111,21 @@
         (.fillRect g 0 0 width height)
         (render-coll ctx body)))))
 
-(defmethod render* :title [{:keys [g] :as ctx} [_ attrs title]]
-  (with-paddings ctx attrs
-    (fn [ctx]
-      (render-text ctx attrs title))))
+(defmethod render* :text [ctx [_ attrs & texts]]
+  (render-text ctx attrs (apply str texts)))
 
-(defmethod render* :items [{:keys [g] :as ctx} [_ attrs & items]]
+(defmethod render* :title [ctx [_ attrs title]]
   (with-paddings ctx attrs
     (fn [ctx]
-      (reduce (fn [ctx [i item]]
-                (-> (render-text ctx attrs (str "・" item))
+      (render ctx title))))
+
+(defmethod render* :items [ctx [_ attrs & items]]
+  (with-paddings ctx attrs
+    (fn [ctx]
+      (reduce (fn [ctx item]
+                (-> (render-text ctx attrs "・")
+                    (assoc ::current-y (::current-y ctx))
+                    (render item)
                     (assoc ::current-x (::min-x ctx))))
               ctx
-              (map-indexed vector items)))))
+              items))))
