@@ -5,7 +5,7 @@
            [java.io File]
            [javax.imageio ImageIO]))
 
-(set! *warn-on-reflect* true)
+(set! *warn-on-reflection* true)
 
 (defn- enable-antialiasing [^Graphics2D g]
   (doto g
