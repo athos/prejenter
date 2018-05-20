@@ -1,5 +1,5 @@
 (ns prejenter.core
-  (:import [java.awt Color Font]
+  (:import [java.awt Color Graphics2D Font RenderingHints]
            [java.awt.image BufferedImage]
            [java.io File]
            [javax.imageio ImageIO]))
@@ -71,10 +71,18 @@
           ctx
           (map-indexed vector items)))
 
+(defn- enable-antialiasing [^Graphics2D g]
+  (doto g
+    (.setRenderingHint RenderingHints/KEY_ANTIALIASING
+                       RenderingHints/VALUE_ANTIALIAS_ON)
+    (.setRenderingHint RenderingHints/KEY_TEXT_ANTIALIASING
+                       RenderingHints/VALUE_TEXT_ANTIALIAS_ON)))
+
 (defn gen-image [{:keys [width height] :as ctx} x]
   (let [img (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
         g (.getGraphics img)
         ctx (assoc ctx :g g)]
+    (enable-antialiasing g)
     (render ctx x)
     (.dispose g)
     img))
