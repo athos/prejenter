@@ -44,7 +44,13 @@
 (defn render-text [{:keys [g] :as ctx} attrs x y text]
   (let [font-size (attr-value ctx attrs :font-size)
         font-family (attr-value ctx attrs :font-family)
-        font (Font. font-family 0 font-size)
+        font-style (get {:normal Font/PLAIN :italic Font/ITALIC}
+                        (attr-value ctx attrs :font-style)
+                        Font/PLAIN)
+        font-weight (get {:normal Font/PLAIN :bold Font/BOLD}
+                         (attr-value ctx attrs :font-weight)
+                         Font/PLAIN)
+        font (Font. font-family (bit-or font-style font-weight) font-size)
         color (attr-value ctx attrs :color Color/BLACK)]
     (.setFont g font)
     (.setColor g color)
@@ -84,7 +90,9 @@
 
   (def slide
     [:slide
-     [:title "Hello, World!"]
+     [:title
+      {:font-style :italic :font-weight :bold}
+      "Hello, World!"]
      [:items {:color Color/BLUE}
       "foo"
       "bar"
