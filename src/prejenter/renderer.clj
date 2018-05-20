@@ -67,22 +67,56 @@
         (update ::current-x + width)
         (update ::current-y + height))))
 
-(defmethod render* :slide [{:keys [g width height] :as ctx} [_ _ & body]]
+(defn- paddings
+  ([attrs] (paddings attrs 0))
+  ([attrs default-value]
+   (let [padding (get attrs :padding default-value)]
+     (into {} (map (fn [k] [k (get attrs k padding)]))
+           [:padding-top :padding-left :padding-bottom :padding-right]))))
+
+(defn- apply-paddings [ctx paddings]
+  (-> ctx
+      (update ::min-x + (:padding-left paddings))
+      (update ::max-x - (:padding-right paddings))
+      (update ::min-y + (:padding-top paddings))
+      (update ::max-y - (:padding-bottom paddings))))
+
+(defn with-paddings [ctx attrs f]
+  (let [paddings (paddings attrs)
+        ctx' (apply-paddings ctx paddings)]
+    ;; TODO: inline elements need more tweaks
+    (-> ctx'
+        (assoc ::current-x (::min-x ctx'))
+        (update ::current-y + (:padding-top paddings))
+        f
+        (assoc ::current-x (::min-x ctx))
+        (update ::current-y + (:padding-bottom paddings))
+        (merge (select-keys ctx [::min-x ::max-x ::min-y ::max-y])))))
+
+(defmethod render* :slide [{:keys [g width height] :as ctx} [_ attrs & body]]
   (let [ctx (assoc ctx
                    ::current-x 0, ::current-y 0
                    ::min-x 0, ::max-x width
-                   ::min-y 0, ::max-y height)]
-    (.setColor g (:background-color ctx))
-    (.fillRect g 0 0 width height)
-    (render-coll ctx body)))
+                   ::min-y 0, ::max-y height)
+        attrs (merge (select-keys ctx [:padding :padding-top :padding-left
+                                       :padding-bottom :padding-right])
+                     attrs)]
+    (with-paddings ctx attrs
+      (fn [ctx]
+        (.setColor g (:background-color ctx))
+        (.fillRect g 0 0 width height)
+        (render-coll ctx body)))))
 
-(defmethod render* :title [{:keys [g ::min-x] :as ctx} [_ attrs title]]
-  (-> (render-text ctx attrs title)
-      (assoc ::current-x min-x)))
+(defmethod render* :title [{:keys [g] :as ctx} [_ attrs title]]
+  (with-paddings ctx attrs
+    (fn [ctx]
+      (render-text ctx attrs title))))
 
-(defmethod render* :items [{:keys [g ::min-x] :as ctx} [_ attrs & items]]
-  (reduce (fn [ctx [i item]]
-            (-> (render-text ctx attrs (str "- " item))
-                (assoc ::current-x min-x)))
-          ctx
-          (map-indexed vector items)))
+(defmethod render* :items [{:keys [g] :as ctx} [_ attrs & items]]
+  (with-paddings ctx attrs
+    (fn [ctx]
+      (reduce (fn [ctx [i item]]
+                (-> (render-text ctx attrs (str "・" item))
+                    (assoc ::current-x (::min-x ctx))))
+              ctx
+              (map-indexed vector items)))))

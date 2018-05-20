@@ -27,6 +27,7 @@
 
   (def context
     {:width 640 :height 480
+     :padding 20
      :font-family "Gill Sans"
      :font-size 30
      :color Color/BLACK
@@ -35,7 +36,8 @@
   (def slide
     [:slide
      [:title
-      {:font-style :italic :font-weight :bold}
+      {:font-style :italic :font-weight :bold
+       :padding-left 10 :padding-bottom 10}
       "Hello, World!"]
      [:items {:color Color/BLUE}
       "foo"
