@@ -42,7 +42,9 @@
      [:items {:color Color/BLUE}
       [:text {:color Color/RED} "foo"]
       "bar"
-      "baz"]])
+      "baz"]
+     [:image {:src (ImageIO/read (File. "/path/to/clojure_logo.png"))
+              :x 400 :y 50 :width 128 :height 128}]])
 
   (let [img (gen-image context slide)]
     (ImageIO/write img "png" (File. "/path/to/image.png")))

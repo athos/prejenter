@@ -71,6 +71,12 @@
         (update ::current-x + width)
         (update ::current-y + height))))
 
+(defn render-image [{:keys [g] :as ctx} image {:keys [x y width height]}]
+  (if (and width height)
+    (.drawImage g image x y width height nil)
+    (.drawImage g image x y nil))
+  ctx)
+
 (defn- paddings
   ([attrs] (paddings attrs 0))
   ([attrs default-value]
@@ -137,3 +143,6 @@
                     (assoc ::current-x (::min-x ctx))))
               ctx
               items))))
+
+(defmethod render* :image [ctx [_ attrs]]
+  (render-image ctx (:src attrs) (dissoc attrs :src)))
