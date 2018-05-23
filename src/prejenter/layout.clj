@@ -21,40 +21,28 @@
 
 (defmulti layout* (fn [ctx elem] (:tag elem)))
 
-(declare paddings apply-paddings wrap-with-paddings)
-
 (defn layout [ctx elem]
-  (letfn [(rec [ctx elem]
-            (cond (string? elem)
-                  (recur ctx [:text {} elem])
+  (cond (string? elem)
+        (recur ctx [:text {} elem])
 
-                  (vector? elem)
-                  (let [[tag & args] elem]
-                    (cond (keyword? tag)
-                          (let [elem (normalize-elem elem)
-                                paddings (paddings ctx (:attrs elem))]
-                            (as-> elem elem
-                              (update elem :attrs #(-> (merge paddings %) (dissoc :padding)))
-                              (layout* (apply-paddings ctx paddings) elem)
-                              (wrap-with-paddings elem paddings)))
+        (vector? elem)
+        (let [[tag & args] elem]
+          (cond (keyword? tag)
+                (layout* ctx (normalize-elem elem))
 
-                          (fn? tag)
-                          (rec ctx (apply tag args))
+                (fn? tag)
+                (layout ctx (apply tag args))
 
-                          :else (throw (ex-info "Tag must be a keyword or fn" {:tag tag}))))
-                  :else (throw (ex-info "Element must be a string or vector" {:element elem}))))]
-    (rec (assoc ctx ::min-x 0 ::max-x (:width ctx) ::min-y 0 ::max-y (:height ctx))
-         elem)))
+                :else (throw (ex-info "Tag must be a keyword or fn" {:tag tag}))))
+        :else (throw (ex-info "Element must be a string or vector" {:element elem}))))
 
 (defn layout-elems [ctx elems]
   (map #(layout ctx %) elems))
 
-(defn- paddings
-  ([ctx attrs] (paddings ctx attrs 0))
-  ([ctx attrs default-value]
-   (let [padding (utils/attr-value ctx attrs :padding default-value)]
-     (into {} (map (fn [k] [k (utils/attr-value ctx attrs k padding)]))
-           [:padding-top :padding-left :padding-bottom :padding-right]))))
+(defn- paddings [attrs]
+  (let [padding (get attrs :padding 0)]
+    (into {} (map (fn [k] [k (get attrs k padding)]))
+          [:padding-top :padding-left :padding-bottom :padding-right])))
 
 (defn- apply-paddings [ctx paddings]
   (-> ctx
@@ -63,10 +51,38 @@
       (update ::min-y + (:padding-top paddings))
       (update ::max-y - (:padding-bottom paddings))))
 
-(defn- wrap-with-paddings [elem paddings]
-  (-> elem
-      (update-in [:attrs ::width] + (:padding-left paddings) (:padding-right paddings))
-      (update-in [:attrs ::height] + (:padding-top paddings) (:padding-bottom paddings))))
+(defn with-paddings [ctx attrs f]
+  (let [paddings (paddings attrs)
+        ctx (apply-paddings ctx paddings)]
+    (f ctx paddings)))
+
+(defn locate-elem [{:keys [attrs] :as elem} x y]
+  (let [{:keys [padding-left padding-top]} (paddings attrs)]
+    (elem/add-attrs elem ::x (+ x padding-left) ::y (+ y padding-top))))
+
+(defn layout-in-inline [ctx attrs elems]
+  (with-paddings ctx attrs
+    (fn [ctx' {:keys [padding-top padding-left padding-bottom padding-right]}]
+      (let [elems (layout-elems ctx' elems)
+            widths (map #(elem/attr-value % ::width) elems)
+            xs (reductions + padding-left widths)
+            width (+ (apply + widths) padding-left padding-right)
+            height (->> (map #(elem/attr-value % ::height) elems)
+                        (apply max)
+                        (+ padding-top padding-bottom))]
+        [(assoc attrs ::width width ::height height)
+         (map #(locate-elem %1 %2 padding-top) elems xs)]))))
+
+(defn layout-in-block [ctx attrs elems]
+  (with-paddings ctx attrs
+    (fn [ctx' {:keys [padding-top padding-left padding-bottom]}]
+      (let [elems (layout-elems ctx' elems)
+            heights (map #(elem/attr-value % ::height) elems)
+            ys (reductions + padding-top heights)
+            width (- (::max-x ctx) (::min-x ctx))
+            height (+ (apply + heights) padding-top padding-bottom)]
+        [(assoc attrs ::width width ::height height)
+         (map #(locate-elem %1 padding-left %2) elems ys)]))))
 
 (defn ^Font attrs-font [ctx attrs]
   (let [font-size (utils/attr-value ctx attrs :font-size)
@@ -96,50 +112,32 @@
      :ascent (.getAscent lm)}))
 
 (defmethod layout* :text [{:keys [g] :as ctx} {:keys [attrs body] :as elem}]
-  (let [text (apply str body)]
+  (let [text (apply str body)
+        {:keys [padding-top padding-left padding-bottom padding-right]} (paddings attrs)]
     (with-font ctx attrs
       (fn [font]
         (let [{:keys [width height ascent]} (text-metrics g text)]
           (-> elem
-              (elem/add-attrs ::width width ::height height ::ascent ascent ::font font)
+              (elem/add-attrs ::width (+ width padding-left padding-right)
+                              ::height (+ height padding-top padding-bottom)
+                              ::ascent ascent ::font font)
               (assoc :body text)))))))
 
 (defmethod layout* :title [ctx {:keys [attrs body] :as elem}]
-  (let [title (layout ctx (first body))]
-    (-> elem
-        (elem/add-attrs ::width (- (::max-x ctx) (::min-x ctx))
-                        ::height (elem/attr-value title ::height))
-        (assoc :body title))))
+  (let [[attrs elems] (layout-in-block ctx attrs body)]
+    (assoc elem :attrs attrs :body elems)))
 
 (defmethod layout* :inline [ctx {:keys [attrs body] :as elem}]
-  (loop [elems (layout-elems ctx body), x 0, y 0, acc []]
-    (if (empty? elems)
-      (-> elem
-          (elem/add-attrs ::width x ::height y)
-          (assoc :body acc))
-      (let [[elem & elems] elems]
-        (recur elems
-               (+ x (elem/attr-value elem ::width))
-               (max y (elem/attr-value elem ::height))
-               (conj acc (elem/add-attrs elem ::x x ::y 0)))))))
+  (let [[attrs elems] (layout-in-inline ctx attrs body)]
+    (assoc elem :attrs attrs :body elems)))
 
 (defmethod layout* :items [ctx {:keys [attrs body] :as elem}]
-  (let [elems (->> body
-                   (map (fn [item] [:inline "・" item]))
-                   (layout-elems ctx))]
-    (loop [elems elems, y 0, acc []]
-      (if (empty? elems)
-        (-> elem
-            (elem/add-attrs ::width (- (::max-x ctx) (::min-x ctx)) ::height y)
-            (assoc :body acc))
-        (let [[elem & elems] elems]
-          (recur elems
-                 (+ y (elem/attr-value elem ::height))
-                 (conj acc (elem/add-attrs elem ::x 0 ::y y))))))))
+  (let [[attrs elems] (->> (map (fn [item] [:inline "・" item]) body)
+                           (layout-in-block ctx attrs))]
+    (assoc elem :attrs attrs :body elems)))
 
 (defmethod layout* :slide [{:keys [width height] :as ctx} {:keys [attrs body] :as elem}]
-  (let [ctx (dissoc ctx :padding :padding-top :padding-left :padding-bottom :padding-right)]
-    (-> elem
-        (elem/add-attrs ::width (- width (:padding-left attrs) (:padding-right attrs))
-                        ::height (- height (:padding-top attrs) (:padding-bottom attrs)))
-        (assoc :body (layout-elems ctx body)))))
+  (let [ctx (assoc ctx ::min-x 0 ::max-x width ::min-y 0 ::max-y height)
+        attrs (merge (paddings ctx) attrs)
+        [attrs elems] (layout-in-block ctx attrs body)]
+    (assoc elem :attrs attrs :body elems)))
