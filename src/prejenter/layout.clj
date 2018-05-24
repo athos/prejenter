@@ -60,10 +60,17 @@
   (let [{:keys [padding-left padding-top]} (paddings attrs)]
     (elem/add-attrs elem ::x (+ x padding-left) ::y (+ y padding-top))))
 
+(def ^:private inheritable-attrs
+  #{:font-size :font-family :font-style :font-weight :color})
+
+(defn- inject-attrs [ctx attrs]
+  (merge ctx (select-keys attrs inheritable-attrs)))
+
 (defn layout-in-inline [ctx attrs elems]
   (with-paddings ctx attrs
     (fn [ctx' {:keys [padding-top padding-left padding-bottom padding-right]}]
-      (let [elems (layout-elems ctx' elems)
+      (let [ctx' (inject-attrs ctx' attrs)
+            elems (layout-elems ctx' elems)
             widths (map #(elem/attr-value % ::width) elems)
             xs (reductions + 0 widths)
             width (+ (apply + widths) padding-left padding-right)
@@ -76,7 +83,8 @@
 (defn layout-in-block [ctx attrs elems]
   (with-paddings ctx attrs
     (fn [ctx' {:keys [padding-top padding-left padding-bottom]}]
-      (let [elems (layout-elems ctx' elems)
+      (let [ctx' (inject-attrs ctx' attrs)
+            elems (layout-elems ctx' elems)
             heights (map #(elem/attr-value % ::height) elems)
             ys (reductions + 0 heights)
             width (- (::max-x ctx) (::min-x ctx))
