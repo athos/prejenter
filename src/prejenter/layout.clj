@@ -140,6 +140,10 @@
   (let [[attrs elems] (layout-in-inline ctx attrs body)]
     (assoc elem :attrs attrs :body elems)))
 
+(defmethod layout* :lines [ctx {:keys [attrs body] :as elem}]
+  (let [[attrs elems] (layout-in-block ctx attrs body)]
+    (assoc elem :attrs attrs :body elems)))
+
 (defmethod layout* :items [ctx {:keys [attrs body] :as elem}]
   (let [[attrs elems] (->> (map (fn [item] [:inline "・" item]) body)
                            (layout-in-block ctx attrs))]

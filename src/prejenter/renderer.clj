@@ -46,6 +46,9 @@
 (defmethod render* :inline [ctx {:keys [attrs body]}]
   (render-elems ctx body))
 
+(defmethod render* :lines [ctx {:keys [attrs body]}]
+  (render-elems ctx body))
+
 (defmethod render* :items [ctx {:keys [attrs body]}]
   (render-elems ctx body))
 

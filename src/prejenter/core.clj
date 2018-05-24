@@ -47,6 +47,10 @@
       [:text {:color Color/RED} "foo"]
       "bar"
       "baz"]
+     [:lines {:color Color/GREEN}
+      "hoge"
+      "fuga"
+      "piyo"]
      [:image {:src (ImageIO/read (File. "/path/to/clojure_logo.png"))
               :x 400 :y 50 :width 128 :height 128}]])
 
