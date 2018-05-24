@@ -1,7 +1,8 @@
 (ns prejenter.layout
   (:require [prejenter.element :as elem]
             [prejenter.utils :as utils])
-  (:import [java.awt Color Font Graphics2D]))
+  (:import [java.awt Color Font Graphics2D]
+           [java.awt.image BufferedImage]))
 
 (set! *warn-on-reflection* true)
 
@@ -131,6 +132,12 @@
                               ::height (+ height padding-top padding-bottom)
                               ::ascent ascent ::font font ::color color)
               (assoc :body text)))))))
+
+(defmethod layout* :image [ctx {:keys [attrs] :as elem}]
+  (let [^BufferedImage image (:src attrs)
+        width (.getWidth image)
+        height (.getHeight image)]
+    (elem/add-attrs elem ::width width ::height height ::image image)))
 
 (defmethod layout* :title [ctx {:keys [attrs body] :as elem}]
   (let [[attrs title] (layout-in-block ctx attrs body)]

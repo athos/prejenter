@@ -25,10 +25,8 @@
         {::layout/keys [x y width height ascent]} attrs]
     (.drawString g text current-x (int (+ current-y ascent)))))
 
-(defn render-image [{:keys [g] :as ctx} image {:keys [x y width height]}]
-  (if (and width height)
-    (.drawImage g image x y width height nil)
-    (.drawImage g image x y nil)))
+(defn render-image [{:keys [g] :as ctx} {::layout/keys [image width height]}]
+  (.drawImage g image (::current-x ctx) (::current-y ctx) width height nil))
 
 (defmethod render* :slide [{:keys [g width height] :as ctx} {:keys [attrs body]}]
   (let [{:keys [padding-top padding-left]} attrs
@@ -39,6 +37,9 @@
 
 (defmethod render* :text [ctx {:keys [attrs body]}]
   (render-text ctx attrs body))
+
+(defmethod render* :image [ctx {:keys [attrs]}]
+  (render-image ctx attrs))
 
 (defmethod render* :title [ctx {:keys [attrs body]}]
   (render-elems ctx body))
@@ -51,6 +52,3 @@
 
 (defmethod render* :items [ctx {:keys [attrs body]}]
   (render-elems ctx body))
-
-(defmethod render* :image [ctx [_ attrs]]
-  (render-image ctx (:src attrs) (dissoc attrs :src)))
