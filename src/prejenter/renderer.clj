@@ -32,8 +32,7 @@
     (.drawImage g image x y nil)))
 
 (defmethod render* :slide [{:keys [g width height] :as ctx} {:keys [attrs body]}]
-  (let [padding-left (utils/attr-value ctx attrs :padding-left)
-        padding-top (utils/attr-value ctx attrs :padding-top)
+  (let [{:keys [padding-top padding-left]} attrs
         ctx (assoc ctx ::current-x padding-left ::current-y padding-top)]
     (.setColor g (:background-color ctx))
     (.fillRect g 0 0 width height)
