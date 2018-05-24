@@ -19,6 +19,7 @@
         ctx (assoc ctx :g g)]
     (enable-antialiasing g)
     (renderer/render ctx (layout/layout ctx x))
+    (.dispose g)
     img))
 
 (comment
