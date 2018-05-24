@@ -1,6 +1,5 @@
 (ns prejenter.layout
-  (:require [prejenter.element :as elem]
-            [prejenter.utils :as utils])
+  (:require [prejenter.element :as elem])
   (:import [java.awt Color Font Graphics2D]
            [java.awt.image BufferedImage]))
 
@@ -93,14 +92,22 @@
         [(assoc attrs ::width width ::height height)
          (map #(locate-elem %1 0 %2) elems ys)]))))
 
+(defn attr-value
+  ([ctx attrs attr-name]
+   (attr-value ctx attrs attr-name nil))
+  ([ctx attrs attr-name default-value]
+   (or (get attrs attr-name)
+       (get ctx attr-name)
+       default-value)))
+
 (defn ^Font attrs-font [ctx attrs]
-  (let [font-size (utils/attr-value ctx attrs :font-size)
-        font-family (utils/attr-value ctx attrs :font-family)
+  (let [font-size (attr-value ctx attrs :font-size)
+        font-family (attr-value ctx attrs :font-family)
         font-style (get {:normal Font/PLAIN :italic Font/ITALIC}
-                        (utils/attr-value ctx attrs :font-style)
+                        (attr-value ctx attrs :font-style)
                         Font/PLAIN)
         font-weight (get {:normal Font/PLAIN :bold Font/BOLD}
-                         (utils/attr-value ctx attrs :font-weight)
+                         (attr-value ctx attrs :font-weight)
                          Font/PLAIN)]
     (Font. font-family (bit-or font-style font-weight) font-size)))
 
@@ -126,7 +133,7 @@
     (with-font ctx attrs
       (fn [font]
         (let [{:keys [width height ascent]} (text-metrics g text)
-              color (utils/attr-value ctx attrs :color Color/BLACK)]
+              color (attr-value ctx attrs :color Color/BLACK)]
           (-> elem
               (elem/add-attrs ::width (+ width padding-left padding-right)
                               ::height (+ height padding-top padding-bottom)
