@@ -4,7 +4,10 @@
 
 (set! *warn-on-reflection* true)
 
-(defmulti render* (fn [ctx elem] (:tag elem)))
+(defmulti render-element (fn [ctx elem] (:tag elem)))
+
+(defn render* [ctx elem]
+  (render-element ctx elem))
 
 (defn render [ctx elem]
   (render* ctx elem))
@@ -14,11 +17,11 @@
       (update ::current-x + x)
       (update ::current-y + y)))
 
-(defn render-elems [ctx elems]
+(defn render-elements [ctx elems]
   (doseq [{:keys [attrs] :as elem} elems
           :let [{::layout/keys [x y]} attrs
                 ctx (move-to ctx x y)]]
-    (render ctx elem)))
+    (render* ctx elem)))
 
 (defn render-text [{:keys [^Graphics2D g] :as ctx} attrs ^String text]
   (.setColor g (::layout/color attrs))
@@ -33,28 +36,28 @@
               (::current-y ctx)
               width height nil))
 
-(defmethod render* :slide [{:keys [width height] :as ctx} {:keys [attrs body]}]
+(defmethod render-element :slide [{:keys [width height] :as ctx} {:keys [attrs body]}]
   (let [{:keys [padding-top padding-left]} attrs
         ctx (assoc ctx ::current-x padding-left ::current-y padding-top)
         ^Graphics2D g (:g ctx)]
     (.setColor g (:background-color ctx))
     (.fillRect g 0 0 width height)
-    (render-elems ctx body)))
+    (render-elements ctx body)))
 
-(defmethod render* :text [ctx {:keys [attrs body]}]
+(defmethod render-element :text [ctx {:keys [attrs body]}]
   (render-text ctx attrs body))
 
-(defmethod render* :image [ctx {:keys [attrs]}]
+(defmethod render-element :image [ctx {:keys [attrs]}]
   (render-image ctx attrs))
 
-(defmethod render* :title [ctx {:keys [attrs body]}]
-  (render-elems ctx body))
+(defmethod render-element :title [ctx {:keys [attrs body]}]
+  (render-elements ctx body))
 
-(defmethod render* :inline [ctx {:keys [attrs body]}]
-  (render-elems ctx body))
+(defmethod render-element :inline [ctx {:keys [attrs body]}]
+  (render-elements ctx body))
 
-(defmethod render* :lines [ctx {:keys [attrs body]}]
-  (render-elems ctx body))
+(defmethod render-element :lines [ctx {:keys [attrs body]}]
+  (render-elements ctx body))
 
-(defmethod render* :items [ctx {:keys [attrs body]}]
-  (render-elems ctx body))
+(defmethod render-element :items [ctx {:keys [attrs body]}]
+  (render-elements ctx body))
