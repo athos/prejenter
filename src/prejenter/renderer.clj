@@ -1,6 +1,5 @@
 (ns prejenter.renderer
-  (:require [prejenter.utils :as utils]
-            [prejenter.layout :as layout])
+  (:require [prejenter.layout :as layout])
   (:import [java.awt Color Graphics2D]))
 
 (defmulti render* (fn [ctx elem] (:tag elem)))
@@ -20,7 +19,7 @@
     (render ctx elem)))
 
 (defn render-text [{:keys [g] :as ctx} attrs text]
-  (.setColor g (utils/attr-value ctx attrs :color Color/BLACK))
+  (.setColor g (::layout/color attrs))
   (.setFont g (::layout/font attrs))
   (let [{::keys [current-x current-y]} ctx
         {::layout/keys [x y width height ascent]} attrs]

@@ -1,7 +1,7 @@
 (ns prejenter.layout
   (:require [prejenter.element :as elem]
             [prejenter.utils :as utils])
-  (:import [java.awt Graphics2D Font]))
+  (:import [java.awt Color Font Graphics2D]))
 
 (set! *warn-on-reflection* true)
 
@@ -124,11 +124,12 @@
         {:keys [padding-top padding-left padding-bottom padding-right]} (paddings attrs)]
     (with-font ctx attrs
       (fn [font]
-        (let [{:keys [width height ascent]} (text-metrics g text)]
+        (let [{:keys [width height ascent]} (text-metrics g text)
+              color (utils/attr-value ctx attrs :color Color/BLACK)]
           (-> elem
               (elem/add-attrs ::width (+ width padding-left padding-right)
                               ::height (+ height padding-top padding-bottom)
-                              ::ascent ascent ::font font)
+                              ::ascent ascent ::font font ::color color)
               (assoc :body text)))))))
 
 (defmethod layout* :title [ctx {:keys [attrs body] :as elem}]
