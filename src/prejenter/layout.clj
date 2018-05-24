@@ -65,24 +65,24 @@
     (fn [ctx' {:keys [padding-top padding-left padding-bottom padding-right]}]
       (let [elems (layout-elems ctx' elems)
             widths (map #(elem/attr-value % ::width) elems)
-            xs (reductions + padding-left widths)
+            xs (reductions + 0 widths)
             width (+ (apply + widths) padding-left padding-right)
             height (->> (map #(elem/attr-value % ::height) elems)
                         (apply max)
                         (+ padding-top padding-bottom))]
         [(assoc attrs ::width width ::height height)
-         (map #(locate-elem %1 %2 padding-top) elems xs)]))))
+         (map #(locate-elem %1 %2 0) elems xs)]))))
 
 (defn layout-in-block [ctx attrs elems]
   (with-paddings ctx attrs
     (fn [ctx' {:keys [padding-top padding-left padding-bottom]}]
       (let [elems (layout-elems ctx' elems)
             heights (map #(elem/attr-value % ::height) elems)
-            ys (reductions + padding-top heights)
+            ys (reductions + 0 heights)
             width (- (::max-x ctx) (::min-x ctx))
             height (+ (apply + heights) padding-top padding-bottom)]
         [(assoc attrs ::width width ::height height)
-         (map #(locate-elem %1 padding-left %2) elems ys)]))))
+         (map #(locate-elem %1 0 %2) elems ys)]))))
 
 (defn ^Font attrs-font [ctx attrs]
   (let [font-size (utils/attr-value ctx attrs :font-size)
@@ -124,8 +124,8 @@
               (assoc :body text)))))))
 
 (defmethod layout* :title [ctx {:keys [attrs body] :as elem}]
-  (let [[attrs elems] (layout-in-block ctx attrs body)]
-    (assoc elem :attrs attrs :body elems)))
+  (let [[attrs title] (layout-in-block ctx attrs body)]
+    (assoc elem :attrs attrs :body title)))
 
 (defmethod layout* :inline [ctx {:keys [attrs body] :as elem}]
   (let [[attrs elems] (layout-in-inline ctx attrs body)]
