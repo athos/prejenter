@@ -19,8 +19,7 @@
         g (.getGraphics img)
         ctx (assoc ctx :g g)]
     (enable-antialiasing g)
-    (renderer/render ctx x)
-    (.dispose g)
+    (renderer/render ctx (layout/layout ctx x))
     img))
 
 (comment
