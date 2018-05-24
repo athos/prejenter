@@ -22,7 +22,7 @@
   (.setColor g (::layout/color attrs))
   (.setFont g (::layout/font attrs))
   (let [{::keys [current-x current-y]} ctx
-        {::layout/keys [x y width height ascent]} attrs]
+        {::layout/keys [width height ascent]} attrs]
     (.drawString g text current-x (int (+ current-y ascent)))))
 
 (defn render-image [{:keys [g] :as ctx} {::layout/keys [image width height]}]
