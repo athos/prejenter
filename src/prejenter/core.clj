@@ -1,9 +1,8 @@
 (ns prejenter.core
-  (:require [prejenter.renderer :as renderer])
-  (:import [java.awt Color Graphics2D RenderingHints]
-           [java.awt.image BufferedImage]
-           [java.io File]
-           [javax.imageio ImageIO]))
+  (:require [prejenter.layout :as layout]
+            [prejenter.renderer :as renderer])
+  (:import [java.awt Graphics2D RenderingHints]
+           [java.awt.image BufferedImage]))
 
 (set! *warn-on-reflection* true)
 
@@ -23,6 +22,11 @@
     img))
 
 (comment
+
+  (import '[java.awt Color]
+          '[java.awt.image]
+          '[java.io File]
+          '[javax.imageio ImageIO])
 
   (def context
     {:width 640 :height 480
