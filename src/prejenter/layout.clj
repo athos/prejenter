@@ -69,31 +69,33 @@
 (defn- inject-attrs [ctx attrs]
   (merge ctx (select-keys attrs inheritable-attrs)))
 
-(defn layout-in-inline [ctx attrs elems]
+(defn layout-in-inline [ctx {:keys [attrs body] :as elem}]
   (with-paddings ctx attrs
     (fn [ctx' {:keys [padding-top padding-left padding-bottom padding-right]}]
       (let [ctx' (inject-attrs ctx' attrs)
-            elems (layout-elements ctx' elems)
+            elems (layout-elements ctx' body)
             widths (map #(elem/attr-value % ::width) elems)
             xs (reductions + 0 widths)
             width (+ (apply + widths) padding-left padding-right)
             height (->> (map #(elem/attr-value % ::height) elems)
                         (apply max)
                         (+ padding-top padding-bottom))]
-        [(assoc attrs ::width width ::height height)
-         (map #(locate-element %1 %2 0) elems xs)]))))
+        (assoc elem
+               :attrs (assoc attrs ::width width ::height height)
+               :body (map #(locate-element %1 %2 0) elems xs))))))
 
-(defn layout-in-block [ctx attrs elems]
+(defn layout-in-block [ctx {:keys [attrs body] :as elem}]
   (with-paddings ctx attrs
     (fn [ctx' {:keys [padding-top padding-left padding-bottom]}]
       (let [ctx' (inject-attrs ctx' attrs)
-            elems (layout-elements ctx' elems)
+            elems (layout-elements ctx' body)
             heights (map #(elem/attr-value % ::height) elems)
             ys (reductions + 0 heights)
             width (- (::max-x ctx) (::min-x ctx))
             height (+ (apply + heights) padding-top padding-bottom)]
-        [(assoc attrs ::width width ::height height)
-         (map #(locate-element %1 0 %2) elems ys)]))))
+        (assoc elem
+               :attrs (assoc attrs ::width width ::height height)
+               :body (map #(locate-element %1 0 %2) elems ys))))))
 
 (defn attr-value
   ([ctx attrs attr-name]
@@ -149,25 +151,20 @@
         height (.getHeight image)]
     (elem/add-attrs elem ::width width ::height height ::image image)))
 
-(defmethod layout-element :title [ctx {:keys [attrs body] :as elem}]
-  (let [[attrs title] (layout-in-block ctx attrs body)]
-    (assoc elem :attrs attrs :body title)))
+(defmethod layout-element :title [ctx elem]
+  (layout-in-block ctx elem))
 
-(defmethod layout-element :inline [ctx {:keys [attrs body] :as elem}]
-  (let [[attrs elems] (layout-in-inline ctx attrs body)]
-    (assoc elem :attrs attrs :body elems)))
+(defmethod layout-element :inline [ctx elem]
+  (layout-in-inline ctx elem))
 
-(defmethod layout-element :lines [ctx {:keys [attrs body] :as elem}]
-  (let [[attrs elems] (layout-in-block ctx attrs body)]
-    (assoc elem :attrs attrs :body elems)))
+(defmethod layout-element :lines [ctx elem]
+  (layout-in-block ctx elem))
 
-(defmethod layout-element :items [ctx {:keys [attrs body] :as elem}]
-  (let [[attrs elems] (->> (map (fn [item] [:inline "・" item]) body)
-                           (layout-in-block ctx attrs))]
-    (assoc elem :attrs attrs :body elems)))
+(defmethod layout-element :items [ctx elem]
+  (->> (update elem :body #(map (fn [item] [:inline "・" item]) %))
+       (layout-in-block ctx)))
 
-(defmethod layout-element :slide [{:keys [width height] :as ctx} {:keys [attrs body] :as elem}]
+(defmethod layout-element :slide [{:keys [width height] :as ctx} elem]
   (let [ctx (assoc ctx ::min-x 0 ::max-x width ::min-y 0 ::max-y height)
-        attrs (merge (paddings ctx) attrs)
-        [attrs elems] (layout-in-block ctx attrs body)]
-    (assoc elem :attrs attrs :body elems)))
+        attrs (merge (paddings ctx) (:attrs elem))]
+    (layout-in-block ctx (assoc elem :attrs attrs))))
