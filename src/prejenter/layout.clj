@@ -1,5 +1,6 @@
 (ns prejenter.layout
-  (:require [prejenter.element :as elem])
+  (:require [prejenter.alignment :as align]
+            [prejenter.element :as elem])
   (:import [java.awt Color Font Graphics2D]
            [java.awt.image BufferedImage]))
 
@@ -59,10 +60,6 @@
         ctx (apply-paddings ctx paddings)]
     (f ctx paddings)))
 
-(defn locate-element [{:keys [attrs] :as elem} x y]
-  (let [{:keys [padding-left padding-top]} (paddings attrs)]
-    (elem/add-attrs elem ::x (+ x padding-left) ::y (+ y padding-top))))
-
 (def ^:private inheritable-attrs
   #{:font-size :font-family :font-style :font-weight :color})
 
@@ -71,31 +68,17 @@
 
 (defn layout-in-inline [ctx {:keys [attrs body] :as elem}]
   (with-paddings ctx attrs
-    (fn [ctx' {:keys [padding-top padding-left padding-bottom padding-right]}]
-      (let [ctx' (inject-attrs ctx' attrs)
-            elems (layout-elements ctx' body)
-            widths (map #(elem/attr-value % ::width) elems)
-            xs (reductions + 0 widths)
-            width (+ (apply + widths) padding-left padding-right)
-            height (->> (map #(elem/attr-value % ::height) elems)
-                        (apply max)
-                        (+ padding-top padding-bottom))]
-        (assoc elem
-               :attrs (assoc attrs ::width width ::height height)
-               :body (map #(locate-element %1 %2 0) elems xs))))))
+    (fn [ctx paddings]
+      (let [ctx (inject-attrs ctx attrs)
+            elems (layout-elements ctx body)]
+        (align/align-in-inline ctx paddings (assoc elem :body elems))))))
 
 (defn layout-in-block [ctx {:keys [attrs body] :as elem}]
   (with-paddings ctx attrs
-    (fn [ctx' {:keys [padding-top padding-left padding-bottom]}]
-      (let [ctx' (inject-attrs ctx' attrs)
-            elems (layout-elements ctx' body)
-            heights (map #(elem/attr-value % ::height) elems)
-            ys (reductions + 0 heights)
-            width (- (::max-x ctx) (::min-x ctx))
-            height (+ (apply + heights) padding-top padding-bottom)]
-        (assoc elem
-               :attrs (assoc attrs ::width width ::height height)
-               :body (map #(locate-element %1 0 %2) elems ys))))))
+    (fn [ctx paddings]
+      (let [ctx (inject-attrs ctx attrs)
+            elems (layout-elements ctx body)]
+        (align/align-in-block ctx paddings (assoc elem :body elems))))))
 
 (defn attr-value
   ([ctx attrs attr-name]
