@@ -53,7 +53,7 @@
       "fuga"
       "piyo"]
      [:image {:src (ImageIO/read (File. "/path/to/clojure_logo.png"))
-              :x 400 :y 50 :width 128 :height 128}]])
+              :bottom 10 :right 10 :width 96 :height 96}]])
 
   (let [img (gen-image context slide)]
     (ImageIO/write img "png" (File. "/path/to/image.png")))
