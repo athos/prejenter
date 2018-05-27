@@ -30,11 +30,16 @@
         {::layout/keys [width height ascent]} attrs]
     (.drawString g text (int current-x) (int (+ current-y ascent)))))
 
-(defn render-image [{:keys [g] :as ctx} {::layout/keys [image width height]}]
-  (.drawImage ^Graphics2D g image
-              (::current-x ctx)
-              (::current-y ctx)
-              width height nil))
+(defn render-image [{:keys [^Graphics2D g] :as ctx} attrs]
+  (let [{::layout/keys [image width height]} attrs]
+    (.drawImage g image (::current-x ctx) (::current-y ctx)
+                (- width
+                   (::layout/padding-left attrs)
+                   (::layout/padding-right attrs))
+                (- height
+                   (::layout/padding-top attrs)
+                   (::layout/padding-bottom attrs))
+                nil)))
 
 (defmethod render-element :slide [{:keys [width height] :as ctx} {:keys [attrs body]}]
   (let [{::layout/keys [padding-top padding-left]} attrs

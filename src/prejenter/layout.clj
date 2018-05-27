@@ -128,15 +128,30 @@
                             ::font font ::color color)
             (assoc :body text))))))
 
+(defn- image-size [^BufferedImage image attrs]
+  (let [{:keys [width height] :or {width :auto, height :auto}} attrs]
+    (if (and (number? width) (number? height))
+      [width height]
+      (let [img-width (.getWidth image), img-height (.getHeight image)]
+        (cond (number? width)
+              [width (* img-height (/ (double width) img-width))]
+
+              (number? height)
+              [(* img-width (/ (double height) img-height)) height]
+
+              :else [img-width img-height])))))
+
 (defmethod layout-element :image [ctx {:keys [attrs] :as elem}]
-  (let [^BufferedImage image (:src attrs)
-        width (+ (.getWidth image)
-                 (::padding-left attrs)
-                 (::padding-right attrs))
-        height (+ (.getHeight image)
-                  (::padding-top attrs)
-                  (::padding-bottom attrs))]
-    (elem/add-attrs elem ::width width ::height height ::image image)))
+  (let [image (:src attrs)
+        [width height] (image-size image attrs)]
+    (elem/add-attrs elem
+                    ::width (+ width
+                               (::padding-left attrs)
+                               (::padding-right attrs))
+                    ::height (+ height
+                                (::padding-top attrs)
+                                (::padding-bottom attrs))
+                    ::image image)))
 
 (defmethod layout-element :title [ctx elem]
   (layout-in-block ctx elem))
