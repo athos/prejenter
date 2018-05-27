@@ -41,8 +41,9 @@
     [:slide
      [:title
       {:font-style :italic :font-weight :bold
-       :padding-left 10 :padding-bottom 10}
-      [:inline "Hello, " [:text {:color Color/RED} "World!"]]]
+       :padding-left 10 :padding-bottom 10
+       :height 75 :text-align :center :vertical-align :middle}
+      [:inline "Hello, " [:text {:color Color/RED :font-size 40} "World!"]]]
      [:items {:color Color/BLUE}
       [:text {:color Color/RED} "foo"]
       "bar"

@@ -61,24 +61,10 @@
          (update ::max-y - (::padding-bottom attrs)))))
 
 (def ^:private inheritable-attrs
-  #{:font-size :font-family :font-style :font-weight :color})
+  #{:font-size :font-family :font-style :font-weight :color :text-align :vertical-align})
 
 (defn- inject-attrs [ctx attrs]
   (merge ctx (select-keys attrs inheritable-attrs)))
-
-(defn layout-in-inline [ctx {:keys [attrs body] :as elem}]
-  (with-paddings ctx attrs
-    (fn [ctx]
-      (let [ctx (inject-attrs ctx attrs)
-            elems (layout-elements ctx body)]
-        (align/align-in-inline ctx (assoc elem :body elems))))))
-
-(defn layout-in-block [ctx {:keys [attrs body] :as elem}]
-  (with-paddings ctx attrs
-    (fn [ctx]
-      (let [ctx (inject-attrs ctx attrs)
-            elems (layout-elements ctx body)]
-        (align/align-in-block ctx (assoc elem :body elems))))))
 
 (defn attr-value
   ([ctx attrs attr-name]
@@ -87,6 +73,26 @@
    (or (get attrs attr-name)
        (get ctx attr-name)
        default-value)))
+
+(defn layout-in-inline [ctx {:keys [attrs body] :as elem}]
+  (with-paddings ctx attrs
+    (fn [ctx]
+      (let [ctx (inject-attrs ctx attrs)
+            elems (layout-elements ctx body)
+            attrs (assoc attrs
+                         ::text-align (attr-value ctx attrs :text-align)
+                         ::vertical-align (attr-value ctx attrs :vertical-align))]
+        (align/align-in-inline ctx (assoc elem :attrs attrs :body elems))))))
+
+(defn layout-in-block [ctx {:keys [attrs body] :as elem}]
+  (with-paddings ctx attrs
+    (fn [ctx]
+      (let [ctx (inject-attrs ctx attrs)
+            elems (layout-elements ctx body)
+            attrs (assoc attrs
+                         ::text-align (attr-value ctx attrs :text-align)
+                         ::vertical-align (attr-value ctx attrs :vertical-align))]
+        (align/align-in-block ctx (assoc elem :attrs attrs :body elems))))))
 
 (defn ^Font attrs-font [ctx attrs]
   (let [font-size (attr-value ctx attrs :font-size)
