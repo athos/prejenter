@@ -74,7 +74,7 @@
        (get ctx attr-name)
        default-value)))
 
-(defn layout-in-inline [ctx {:keys [attrs body] :as elem}]
+(defn- layout-with-alignment [ctx {:keys [attrs body] :as elem} align-fn]
   (with-paddings ctx attrs
     (fn [ctx]
       (let [ctx (inject-attrs ctx attrs)
@@ -82,17 +82,13 @@
             attrs (assoc attrs
                          ::text-align (attr-value ctx attrs :text-align)
                          ::vertical-align (attr-value ctx attrs :vertical-align))]
-        (align/align-in-inline ctx (assoc elem :attrs attrs :body elems))))))
+        (align-fn ctx (assoc elem :attrs attrs :body elems))))))
+
+(defn layout-in-inline [ctx elem]
+  (layout-with-alignment ctx elem align/align-in-inline))
 
 (defn layout-in-block [ctx {:keys [attrs body] :as elem}]
-  (with-paddings ctx attrs
-    (fn [ctx]
-      (let [ctx (inject-attrs ctx attrs)
-            elems (layout-elements ctx body)
-            attrs (assoc attrs
-                         ::text-align (attr-value ctx attrs :text-align)
-                         ::vertical-align (attr-value ctx attrs :vertical-align))]
-        (align/align-in-block ctx (assoc elem :attrs attrs :body elems))))))
+  (layout-with-alignment ctx elem align/align-in-block))
 
 (defn ^Font attrs-font [ctx attrs]
   (let [font-size (attr-value ctx attrs :font-size)
