@@ -37,7 +37,7 @@
               width height nil))
 
 (defmethod render-element :slide [{:keys [width height] :as ctx} {:keys [attrs body]}]
-  (let [{:keys [padding-top padding-left]} attrs
+  (let [{::layout/keys [padding-top padding-left]} attrs
         ctx (assoc ctx ::current-x padding-left ::current-y padding-top)
         ^Graphics2D g (:g ctx)]
     (.setColor g (:background-color ctx))

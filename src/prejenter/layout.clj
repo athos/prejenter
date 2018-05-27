@@ -6,6 +6,13 @@
 
 (set! *warn-on-reflection* true)
 
+(defn- paddings [attrs]
+  (let [padding (get attrs :padding 0)]
+    (into {} (map (fn [k]
+                    (let [k' (keyword "prejenter.layout" (name k))]
+                      [k' (get attrs k padding)])))
+          [:padding-top :padding-left :padding-bottom :padding-right])))
+
 (defn- normalize-element [[tag & args :as elem]]
   (letfn [(splice-seqs [args]
             (persistent! (rec (transient []) args)))
@@ -17,8 +24,11 @@
                     ret
                     xs))]
    (if (map? (first args))
-     (elem/->Element tag (first args) (splice-seqs (rest args)))
-     (elem/->Element tag {} (splice-seqs args)))))
+     (elem/->Element tag
+                     (as-> (first args) attrs
+                       (merge attrs (paddings attrs)))
+                     (splice-seqs (rest args)))
+     (elem/->Element tag (paddings {}) (splice-seqs args)))))
 
 (defmulti layout-element (fn [ctx elem] (:tag elem)))
 
@@ -43,22 +53,12 @@
 (defn layout-elements [ctx elems]
   (map #(layout* ctx %) elems))
 
-(defn- paddings [attrs]
-  (let [padding (get attrs :padding 0)]
-    (into {} (map (fn [k] [k (get attrs k padding)]))
-          [:padding-top :padding-left :padding-bottom :padding-right])))
-
-(defn- apply-paddings [ctx paddings]
-  (-> ctx
-      (update ::min-x + (:padding-left paddings))
-      (update ::max-x - (:padding-right paddings))
-      (update ::min-y + (:padding-top paddings))
-      (update ::max-y - (:padding-bottom paddings))))
-
 (defn with-paddings [ctx attrs f]
-  (let [paddings (paddings attrs)
-        ctx (apply-paddings ctx paddings)]
-    (f ctx paddings)))
+  (f (-> ctx
+         (update ::min-x + (::padding-left attrs))
+         (update ::max-x - (::padding-right attrs))
+         (update ::min-y + (::padding-top attrs))
+         (update ::max-y - (::padding-bottom attrs)))))
 
 (def ^:private inheritable-attrs
   #{:font-size :font-family :font-style :font-weight :color})
@@ -68,17 +68,17 @@
 
 (defn layout-in-inline [ctx {:keys [attrs body] :as elem}]
   (with-paddings ctx attrs
-    (fn [ctx paddings]
+    (fn [ctx]
       (let [ctx (inject-attrs ctx attrs)
             elems (layout-elements ctx body)]
-        (align/align-in-inline ctx paddings (assoc elem :body elems))))))
+        (align/align-in-inline ctx (assoc elem :body elems))))))
 
 (defn layout-in-block [ctx {:keys [attrs body] :as elem}]
   (with-paddings ctx attrs
-    (fn [ctx paddings]
+    (fn [ctx]
       (let [ctx (inject-attrs ctx attrs)
             elems (layout-elements ctx body)]
-        (align/align-in-block ctx paddings (assoc elem :body elems))))))
+        (align/align-in-block ctx (assoc elem :body elems))))))
 
 (defn attr-value
   ([ctx attrs attr-name]
@@ -115,36 +115,28 @@
      :height (.getHeight lm)
      :ascent (.getAscent lm)}))
 
-(defmethod layout-element :text [{:keys [g] :as ctx} {:keys [attrs body] :as elem}]
+(defmethod layout-element :text [{:keys [g] :as ctx} {:keys [attrs] :as elem}]
   (with-font ctx attrs
     (fn [font]
-      (let [text (apply str body)
+      (let [text (apply str (:body elem))
             {:keys [width height ascent]} (text-metrics g text)
-            paddings (paddings attrs)
-            width (+ width (:padding-left paddings) (:padding-right paddings))
-            height (+ height (:padding-top paddings) (:padding-bottom paddings))
-            color (attr-value ctx attrs :color Color/BLACK)
-            attrs (-> attrs
-                      (assoc ::width width ::height height
-                             ::ascent ascent ::font font ::color color)
-                      (merge paddings))]
-        (assoc elem :attrs attrs :body text)))))
+            width (+ width (::padding-left attrs) (::padding-right attrs))
+            height (+ height (::padding-top attrs) (::padding-bottom attrs))
+            color (attr-value ctx attrs :color Color/BLACK)]
+        (-> elem
+            (elem/add-attrs ::width width ::height height ::ascent ascent
+                            ::font font ::color color)
+            (assoc :body text))))))
 
 (defmethod layout-element :image [ctx {:keys [attrs] :as elem}]
   (let [^BufferedImage image (:src attrs)
-        width (.getWidth image)
-        height (.getHeight image)
-        paddings (paddings attrs)
-        attrs (-> attrs
-                  (assoc ::width (+ width
-                                    (:padding-left paddings)
-                                    (:padding-right paddings))
-                         ::height (+ height
-                                     (:padding-top paddings)
-                                     (:padding-bottom paddings))
-                         ::image image)
-                  (merge paddings))]
-    (assoc elem :attrs attrs)))
+        width (+ (.getWidth image)
+                 (::padding-left attrs)
+                 (::padding-right attrs))
+        height (+ (.getHeight image)
+                  (::padding-top attrs)
+                  (::padding-bottom attrs))]
+    (elem/add-attrs elem ::width width ::height height ::image image)))
 
 (defmethod layout-element :title [ctx elem]
   (layout-in-block ctx elem))
@@ -161,5 +153,6 @@
 
 (defmethod layout-element :slide [{:keys [width height] :as ctx} elem]
   (let [ctx (assoc ctx ::min-x 0 ::max-x width ::min-y 0 ::max-y height)
-        attrs (merge (paddings ctx) (:attrs elem))]
+        attrs (as-> (:attrs elem) attrs
+                (merge attrs (paddings (merge ctx attrs))))]
     (layout-in-block ctx (assoc elem :attrs attrs))))
