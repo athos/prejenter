@@ -116,23 +116,35 @@
      :ascent (.getAscent lm)}))
 
 (defmethod layout-element :text [{:keys [g] :as ctx} {:keys [attrs body] :as elem}]
-  (let [text (apply str body)
-        {:keys [padding-top padding-left padding-bottom padding-right]} (paddings attrs)]
-    (with-font ctx attrs
-      (fn [font]
-        (let [{:keys [width height ascent]} (text-metrics g text)
-              color (attr-value ctx attrs :color Color/BLACK)]
-          (-> elem
-              (elem/add-attrs ::width (+ width padding-left padding-right)
-                              ::height (+ height padding-top padding-bottom)
-                              ::ascent ascent ::font font ::color color)
-              (assoc :body text)))))))
+  (with-font ctx attrs
+    (fn [font]
+      (let [text (apply str body)
+            {:keys [width height ascent]} (text-metrics g text)
+            paddings (paddings attrs)
+            width (+ width (:padding-left paddings) (:padding-right paddings))
+            height (+ height (:padding-top paddings) (:padding-bottom paddings))
+            color (attr-value ctx attrs :color Color/BLACK)
+            attrs (-> attrs
+                      (assoc ::width width ::height height
+                             ::ascent ascent ::font font ::color color)
+                      (merge paddings))]
+        (assoc elem :attrs attrs :body text)))))
 
 (defmethod layout-element :image [ctx {:keys [attrs] :as elem}]
   (let [^BufferedImage image (:src attrs)
         width (.getWidth image)
-        height (.getHeight image)]
-    (elem/add-attrs elem ::width width ::height height ::image image)))
+        height (.getHeight image)
+        paddings (paddings attrs)
+        attrs (-> attrs
+                  (assoc ::width (+ width
+                                    (:padding-left paddings)
+                                    (:padding-right paddings))
+                         ::height (+ height
+                                     (:padding-top paddings)
+                                     (:padding-bottom paddings))
+                         ::image image)
+                  (merge paddings))]
+    (assoc elem :attrs attrs)))
 
 (defmethod layout-element :title [ctx elem]
   (layout-in-block ctx elem))
