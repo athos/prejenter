@@ -136,7 +136,7 @@
          (update ::min-y + (::padding-top attrs))
          (update ::max-y - (::padding-bottom attrs)))))
 
-(defn position [ctx {:keys [attrs] :as elem}]
+(defn resolve-position [ctx {:keys [attrs] :as elem}]
   (let [{:keys [top left bottom right]} attrs]
     (update elem :attrs merge
             (when (or top left bottom right)
@@ -164,7 +164,7 @@
     (fn [ctx]
       (let [ctx (inject-attrs ctx attrs)
             {positioned true, elems false} (->> (layout-elements ctx body)
-                                                (map #(position ctx %))
+                                                (map #(resolve-position ctx %))
                                                 (group-by positioned?))
             attrs (assoc attrs
                          ::text-align (attr-value ctx attrs :text-align)
