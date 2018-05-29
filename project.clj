@@ -3,5 +3,6 @@
   :url "https://github.com/athos/prejenter"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.9.0"]]
+  :dependencies [[org.clojure/clojure "1.9.0"]
+                 [com.itextpdf/itextpdf "5.5.13"]]
   :profiles {:dev {:source-paths ["examples"]}})
