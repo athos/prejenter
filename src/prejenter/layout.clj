@@ -190,6 +190,9 @@
 (defmethod layout-element :inline [ctx elem]
   (layout-in-inline ctx elem))
 
+(defmethod layout-element :block [ctx elem]
+  (layout-in-block ctx elem))
+
 (defmethod layout-element :lines [ctx elem]
   (layout-in-block ctx elem))
 
