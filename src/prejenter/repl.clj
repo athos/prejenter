@@ -1,4 +1,4 @@
-(ns prejenter.core
+(ns prejenter.repl
   (:refer-clojure :exclude [find-var])
   (:require [prejenter.agent :as agent]
             [prejenter.agent.images :as images]))
