@@ -27,11 +27,14 @@
         slides (find-var ns 'slides slides)]
     (images/make-images-agent @context @slides)))
 
-(defn start! [& {:as opts}]
-  (swap! state assoc :prev-opts opts)
-  (let [agent (make-agent opts)]
-    (set-current-agent! agent)
-    (agent/start! agent)))
+(defn start!
+  ([ns] (start! :ns ns))
+  ([opt-key opt-val & {:as opts}]
+   (let [opts (assoc opts opt-key opt-val)]
+     (swap! state assoc :prev-opts opts)
+     (let [agent (make-agent opts)]
+       (set-current-agent! agent)
+       (agent/start! agent)))))
 
 (defn reload! []
   (let [page (agent/current-page (current-agent))
