@@ -17,7 +17,7 @@
   (enable-antialiasing g)
   (renderer/render ctx (layout/layout ctx slide)))
 
-(defn generate-slide [{:keys [width height] :as ctx} slide]
+(defn ^BufferedImage generate-slide [{:keys [width height] :as ctx} slide]
   (let [img (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)
         g (.getGraphics img)
         ctx (assoc ctx :g g)]
