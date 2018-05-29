@@ -13,11 +13,14 @@
     (.setRenderingHint RenderingHints/KEY_TEXT_ANTIALIASING
                        RenderingHints/VALUE_TEXT_ANTIALIAS_ON)))
 
-(defn generate-slide [{:keys [width height] :as ctx} x]
-  (let [img (BufferedImage. width height BufferedImage/TYPE_3BYTE_BGR)
+(defn render-slide [{:keys [g] :as ctx} slide]
+  (enable-antialiasing g)
+  (renderer/render ctx (layout/layout ctx slide)))
+
+(defn generate-slide [{:keys [width height] :as ctx} slide]
+  (let [img (BufferedImage. width height BufferedImage/TYPE_INT_ARGB)
         g (.getGraphics img)
         ctx (assoc ctx :g g)]
-    (enable-antialiasing g)
-    (renderer/render ctx (layout/layout ctx x))
+    (render-slide ctx slide)
     (.dispose g)
     img))
