@@ -1,7 +1,9 @@
 (ns prejenter.repl
-  (:refer-clojure :exclude [find-var])
-  (:require [prejenter.agent :as agent]
-            [prejenter.agent.images :as images]))
+  (:require [clojure.java.io :as io]
+            [prejenter.agent :as agent]
+            [prejenter.agent.images :as images]
+            [prejenter.export :as export]
+            [prejenter.utils :as utils]))
 
 (def ^:private state (atom {}))
 
@@ -11,20 +13,10 @@
 (defn- set-current-agent! [agent]
   (swap! state assoc :current-agent agent))
 
-(defn- find-var [ns name default]
-  (or (when ns
-        (let [kname (keyword (clojure.core/name name))]
-          (or (some->> (vals (ns-publics ns))
-                       (filter #(get (meta %) kname))
-                       first)
-              (ns-resolve ns name))))
-      default))
-
 (defn- make-agent [{:keys [ns context slides]}]
-  (when ns
-    (require ns :reload))
-  (let [context (find-var ns 'context context)
-        slides (find-var ns 'slides slides)]
+  (let [[context slides] (if ns
+                           (utils/with-ns-slides ns vector)
+                           [context slides])]
     (images/make-images-agent @context @slides)))
 
 (defn start!
@@ -54,3 +46,12 @@
 
 (defn goto! [page]
   (agent/prev-page! (current-agent) page))
+
+(defn export!
+  ([ns file] (export! :ns ns :file file))
+  ([opt-key opt-val & {:as opts}]
+   (let [opts (assoc opts opt-key opt-val)
+         [context slides] (if-let [ns (:ns opts)]
+                            (utils/with-ns-slides ns vector)
+                            [(:context opts) (:slides opts)])]
+     (export/export (io/file (:file opts)) @context @slides))))
