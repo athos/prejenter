@@ -45,7 +45,7 @@
    (agent/prev-page! (current-agent) n)))
 
 (defn goto! [page]
-  (agent/prev-page! (current-agent) page))
+  (agent/goto-page! (current-agent) page))
 
 (defn export!
   ([ns file] (export! :ns ns :file file))
