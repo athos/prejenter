@@ -5,9 +5,9 @@
 
 (defrecord ImagesAgent [state context slides]
   agent/Agent
-  (get-state [this] @state)
-  (update-state! [this args]
-    (apply swap! state args))
+  (current-page [this] (:current-page @state))
+  (update-page! [this page]
+    (swap! state assoc :current-page page))
   (slide [this page]
     (when (s/int-in-range? 0 (count slides) page)
       (slide/generate-slide context (nth slides page))))
